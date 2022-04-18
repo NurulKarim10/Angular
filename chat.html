@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+     <head>
+          <meta charset="UTF-8" />
+          <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+          <meta
+               name="viewport"
+               content="width=device-width, initial-scale=1.0"
+          />
+          <title>Chat app</title>
+          <link rel="stylesheet" href="./styles/style.css" />
+          <script src="./node_modules/jquery/dist/jquery.js"></script>
+          <script src="./node_modules/socket.io/client-dist/socket.io.js"></script>
+          <script src="./node_modules/socketio-file-upload/client.js"></script>
+          <script>
+               var dname = "";
+               $(() => {
+                    var socket = io.connect("http://localhost:9999");
+                    socket.on("connect", () => {
+                         console.log("connected");
+                    });
+                    var siofu = new SocketIOFileUpload(socket);
+                    siofu.listenOnInput(document.getElementById("uploadfile"));
+                    siofu.listenOnDrop(document.getElementById("drop"));
+                    socket.on("connected", (msg) => {
+                         $("#connect").show();
+                    });
+                    socket.on("updateusers", (userlist) => {
+                         $("#chatzone").show();
+                         $("#connect").hide();
+                         console.log(userlist);
+                         $("#users").empty();
+                         userlist.forEach((u) => {
+                              $("#users").append(
+                                   `<li class="list-item">${u}</li>`
+                              );
+                         });
+                    });
+                    socket.on("message", (data) => {
+                         console.log(data);
+                         $("#msgs").append(
+                              `<li class="list-item">From ${data.f}: ${data.m}</li>`
+                         );
+                    });
+					socket.on("uploaded", (data) => {
+                         console.log(data.length);
+                         var name ='...' + data.substring(data.length-10);
+                         console.log(name);
+                         $("#files").append(`<div class='box'>
+                          <img src='/Uploads/icon.png' width='100' />
+                          <span>${name}</span>
+                          <span><a href='/Uploads/${data}' target='_blank'>Download</a></span>
+                          </div>`)
+                        
+                    });
+                    $("#join").click(() => {
+                         socket.emit("addme", $("#dname").val());
+                         dname = $("#dname").val();
+                    });
+                    $("#send").click(() => {
+                         if ($("#m").val() != "")
+                              socket.emit("send", {
+                                   f: dname,
+                                   m: $("#m").val(),
+                              });
+                         $("#m").val("");
+                    });
+                    $("#upload").click(() => {
+                         $("#uploadfile").trigger("click");
+                    });
+                    siofu.addEventListener("complete", function (event) {
+                         //console.log(event.success);
+                         //console.log(event.file);
+                         $("#files").append(`<div class='box'>
+                          <img src='/Uploads/icon.png' width='100' />
+                          <span>${event.file.name}</span>
+                          <span><a href='/Uploads/${event.file.name}' target='_blank'>Download</a></span>
+                          </div>`)
+                    });
+               });
+          </script>
+     </head>
+     <body>
+          <nav class="navbar">
+               <ul class="menu">
+                    <li class="menu-item always">
+                         <a href="./index.html" class="nav-link brand"
+                              >Adda Room</a
+                         >
+                    </li>
+                    <li class="menu-item">
+                         <a href="./index.html" class="nav-link">Home</a>
+                    </li>
+                    <li class="menu-item">
+                         <a href="./chat.html" class="nav-link">Chat</a>
+                    </li>
+               </ul>
+          </nav>
+          <div class="container">
+               <div class="card" id="connect" style="display: none; padding-top: 118px;
+               padding-left: 137px;">
+                    
+                    <div class="col-2">
+                         <div class="inp-addUser">
+                           <input
+                             type="text"
+                             class="inp-addUser-field"
+                             id="dname"
+                             placeholder="Enter Your Name For Join"
+                           />
+                           <button class="inp-addUser-item Btn" id="join" style="color: aliceblue;background-color: blue;">Join</button>
+                         </div>
+                       </div>
+                       <div class="col-2">&nbsp;</div>
+               </div>
+               <div id="chatzone" style="display: none">
+                    <div class="row">
+                         <div class="col-1" id="ulist">
+                              <h3 style="color: rgb(240, 228, 229); text-align: center;">Users</h3>
+                              <ul id="users" class="list"></ul>
+                         </div>
+                         <div class="col-3">
+                              <div class="row">
+                                   <div style="width: 100%">
+                                        <div class="inp-addUser">
+                                             <input
+                                             type="text"
+                                                  id="m"
+                                                  class="inp-addUser-field"/>
+                                                  <button style="background-color: rgb(6, 80, 4);"
+                                                  id="send"
+                                                  class="inp-addUser-item Btn">
+                                                  Send</button>
+                                             <button
+                                             style="background-color: rgb(6, 80, 4);"
+                                                  id="upload"
+                                                  class="inp-addUser-item Btn"
+                                             >
+                                                  Upload
+                                             </button>
+                                        </div>
+                                   </div>
+                              </div>
+                              <div class="row">
+                                   <div class="col-4">
+                                        <div class="drop" id="drop">
+                                             Drop files here
+                                        </div>
+                                   </div>
+                              </div>
+                              <div class="row">
+                                   <div class="col-4">
+                                        <h3>Conversations</h3>
+                                        <ul id="msgs" class="list"></ul>
+                                   </div>
+                              </div>
+                              <div class="row">
+                                   <div class="col-4">
+                                        <h3>Files shared</h3>
+                                        <div class="files" id="files">
+                                   </div>
+                              </div>
+                         </div>
+                    </div>
+               </div>
+          </div>
+          <input type="file" id="uploadfile" style="display: none" />
+          <div class="slideshow-container" style="margin: 10px auto 10px auto;padding: 10px;">
+
+               <div class="mySlides fade">
+                 <div class="numbertext">1 / 3</div>
+                 <img src="chat_5.jpg" style="width: 100%;height: 350px;">
+                 <div class="text">Caption Text</div>
+               </div>
+               
+               <div class="mySlides fade">
+                 <div class="numbertext">2 / 3</div>
+                 <img src="chat_2.png" style="width: 100%;height: 350px;">
+                 <div class="text">Caption Two</div>
+               </div>
+               
+               <div class="mySlides fade">
+                 <div class="numbertext">3 / 3</div>
+                 <img src="chat_6.webp" style="width: 100%;height: 350px;">
+                 <div class="text">Caption Three</div>
+               </div>
+               
+               </div>
+               <br>
+               
+               <div style="text-align:center">
+                 <span class="dot"></span> 
+                 <span class="dot"></span> 
+                 <span class="dot"></span> 
+               </div>
+               <script>
+                 var slideIndex = 0;
+                 showSlides();
+                 
+                 function showSlides() {
+                   var i;
+                   var slides = document.getElementsByClassName("mySlides");
+                   var dots = document.getElementsByClassName("dot");
+                   for (i = 0; i < slides.length; i++) {
+                     slides[i].style.display = "none";  
+                   }
+                   slideIndex++;
+                   if (slideIndex > slides.length) {slideIndex = 1}    
+                   for (i = 0; i < dots.length; i++) {
+                     dots[i].className = dots[i].className.replace(" active", "");
+                   }
+                   slides[slideIndex-1].style.display = "block";  
+                   dots[slideIndex-1].className += " active";
+                   setTimeout(showSlides, 2000); 
+                 }
+                 </script>
+     </body>
+</html>
